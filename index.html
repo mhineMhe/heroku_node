@@ -199,9 +199,9 @@
             socket.on("new_message", (data) => {
                 feedback.html('');
                 if (data.username == myName) {
-                    inbox.append("<h4 style='color: red; margin-top:-10px' id='ownMessage'>" + data.message + "</h4><br><p style='color:black' id='ownMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
+                    inbox.append("<h5 style='color: red; margin-top:-10px' id='ownMessage'>" + data.message + "</h5><br><p style='color:black' id='ownMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
                 } else {
-                    inbox.append("<h4 style='color: blue; margin-top:-10px' id='othersMessage'><b>" + data.username + ":</b>   " + data.message + "</h4><br><p style='color:black' id='otherMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
+                    inbox.append("<h5 style='color: blue; margin-top:-10px' id='othersMessage'><b>" + data.username + ":</b>   " + data.message + "</h5><br><p style='color:black' id='otherMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
                 }
                 $("#inbox").scrollTop($("#inbox")[0].scrollHeight);
             })

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" const="text/html;charset=UTF-8" />
+  <link href="http://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js" integrity="sha256-H9jAz//QLkDOy/nzE9G4aYijQtkLt9FvGmdUTwBk6gs="
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+  <title>My Chat</title>
+</head>
+
+<body style="background-color: #a3b39d">
+  <div class="jumbotron jumbotron-fluid" style="background-color: #2fad42;"><br>
+    <center>
+      <div class="container">
+        <h1 style="font-size:70px;">Welcome to Laure's Chat</h1>
+      </div><br>
+    </center>
+  </div>
+
+  <center>
+    <div class="modal active" id="modal-id" style="background-color: black; margin-top:-10%;"><a href="#close" class="modal-overlay"
+        aria-label="Close"></a>
+      <div class="modal-container" style="width: 30%; background-color: green">
+        <div class="modal-header">
+          <div class="modal-title h4" style="color:white">Create Username</div>
+        </div>
+        <div class="modal-body">
+          <div class="content">
+            <div id="change_username" class="form-group">
+              <input id="username" type="text" class="form-input" placeholder="username" /><br>
+              <button id="btnUsername" class="btn" type="button">Save Username</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+        </div>
+      </div>
+    </div>
+  </center>
+
+  <div class="container" style="margin-top: 5%;">
+    <div class="col-sm-8" id="chat">
+      <div class="card" style="border-radius: 25px; background-color: rgb(216, 210, 210);">
+        <center>
+          <h1 style="color:black">Chatbox</h1>
+          <hr>
+        </center>
+
+        <section id="inbox"></section>
+        <span id="feedback"></span>
+      </div>
+    </div>
+
+
+    <div class="col-sm-4" style="width:20%; float: right; margin-top:-40%; margin-right: 10%;">
+      <div class="card" id="myUser">
+        <center>
+          <header>
+            <h2>Active Users</h2>
+            <hr>
+          </header>
+        </center>
+        <span id="users"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="fixed-bottom">
+      <center>
+        <section id="input_zone">
+          <div class="input-group mb-3" style="margin-top:1%;">
+            <input id="message" type="text" class="form-control" placeholder="Some text" autocomplete="off">
+            <div class="input-group-prepend">
+              <button id="btnMessage" class="btn btn-primary" type="button">Send</button>
+            </div>
+          </div>
+        </section>
+      </center>
+    </div>
+
+  </div>
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script>
+    var myName = "";
+    var users = [""];
+    $(document).ready(function () {
+      var socket = io.connect('http://localhost:3000')
+      socket.emit("request_user", "REQUEST");
+      var message = $("#message");
+      var username = $("#username");
+      var btnMessage = $("#btnMessage");
+      var btnUsername = $("#btnUsername");
+      var inbox = $("#inbox");
+      var feedback = $("#feedback");
+      var interval = 0;
+
+      //close modal
+      $(document).delegate('#btnUsername', 'click', function (e) {
+        myName = $('#username').val();
+        if (myName != "" && !users.includes(myName)) {
+          users.push(myName);
+          socket.emit("log_in", myName);
+          $(this).closest('.modal').removeClass('active');
+          e.preventDefault();
+          inbox.append("You joined the group<br>");
+        } else {
+          alert("Username already used!!!");
+        }
+      });
+
+      socket.on('request_user', function (user) {
+        socket.emit("log_in", myName);
+      })
+
+      socket.on('log_in', function (user) {
+        if (!users.includes(user)) {
+          users.push(user);
+          $('#users').append('<p> 🔵 <i>' + user + '</p>');
+          inbox.append(user + " joined the group<br>");
+        }
+        // socket.emit("log_in", myName);
+      })
+
+      //Emit message
+      btnMessage.click(function () {
+        socket.emit('new_message', { username: myName, message: $('#message').val() });
+        message.val('');
+      });
+
+      //Listen on new_message
+      socket.on("new_message", (data) => {
+        feedback.html('');
+        if (data.username == myName) {
+          inbox.append("<h4 style='color: red; margin-top:-10px' id='ownMessage'>" + data.message + "</h4><br><p style='color:black' id='ownMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
+        } else {
+          inbox.append("<h4 style='color: blue; margin-top:-10px' id='othersMessage'><b>" + data.username + ":</b>   " + data.message + "</h4><br><p style='color:black' id='otherMessageTime'>" + moment().format('MMM Do YYYY, h:mm:ss a') + '</p>')
+        }
+        $("#inbox").scrollTop($("#inbox")[0].scrollHeight);
+      })
+
+      //Emit a username
+      btnUsername.click(function () {
+        socket.emit('change_username', { username: username.val() })
+      })
+
+      //Emit typing
+      message.on("keydown", () => {
+        socket.emit('typing', myName)
+      })
+
+      //Listen on typing
+      socket.on('typing', (data) => {
+        clearInterval(interval);
+        feedback.html("<p><i>" + data + " is typing a message..." + "</i></p>");
+        interval = setInterval(function () {
+          feedback.html('');
+        }, 2000);
+      })
+    });
+  </script>
+</body>
+</html>
